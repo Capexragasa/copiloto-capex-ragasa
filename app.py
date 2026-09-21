@@ -5,14 +5,6 @@ from datetime import datetime, timezone
 from typing import Any
 
 import streamlit as st
-from __future__ import annotations
-
-import json
-from datetime import datetime, timezone
-from typing import Any
-
-import streamlit as st
-
 from copilot import build_prompt
 from risk import CATEGORIES, global_risk, progress, recommendation
 from storage import build_storage
