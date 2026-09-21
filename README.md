@@ -1,5 +1,5 @@
 # Copiloto CAPEX - Ragasa
-
+Primera versión Copiloto CAPEX
 Aplicación nueva e independiente del Roadmap/Expediente CAPEX anterior.
 
 ## Qué incluye esta versión
