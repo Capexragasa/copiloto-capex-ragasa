@@ -585,7 +585,7 @@ with st.sidebar:
         st.markdown('<div class="memory-ok">● Memoria compartida activa</div>', unsafe_allow_html=True)
     else:
         st.markdown('<div class="memory-local">● Memoria local de prueba</div>', unsafe_allow_html=True)
-        st.caption("Cuando configuremos Firestore, tú y tu jefe verán la misma información.")
+        st.caption("Cuando se configure Firestore,se podra ver la misma información, JC estuvo aqui.")
 
     page = st.radio(
         "Navegación",
