@@ -6,6 +6,7 @@ from typing import Any
 
 import streamlit as st
 from copilot import build_prompt
+from gemini_ai import GeminiAIError, generate_analysis, get_gemini_config
 from risk import CATEGORIES, global_risk, progress, recommendation
 from storage import build_storage
 
@@ -142,8 +143,47 @@ def normalize_rows(rows: Any) -> list[dict[str, Any]]:
         if any(str(value).strip() for value in row.values() if value is not None)
     ]
 
-def ai_panel(project: dict[str, Any], module: str) -> None:
-    with st.expander("🧠 Analizar con Copilot", expanded=False):
+def save_ai_response(
+    project: dict[str, Any], module: str, response: str, source: str, model: str = ""
+) -> None:
+    record = {
+        "fecha": now_iso(),
+        "modulo": module,
+        "respuesta": response.strip(),
+        "origen": source,
+        "modelo": model,
+    }
+    project.setdefault("ia_history", []).append(record)
+    project.setdefault(module.lower(), {})["ultima_respuesta_ia"] = response.strip()
+    save(project, module, f"Análisis de {source} guardado")
+
+
+def ai_panel(project: dict[str, Any], module: str, expanded: bool = False) -> None:
+    config = get_gemini_config(st.secrets)
+    latest = project.get(module.lower(), {}).get("ultima_respuesta_ia", "")
+
+    with st.expander("✨ Análisis automático con IA", expanded=expanded):
+        st.caption(
+            "Gemini revisa la información disponible del expediente. No completa datos que no estén documentados."
+        )
+        if config is None:
+            st.warning("Gemini todavía no está configurado en los secretos de la aplicación.")
+        else:
+            label = "Analizar nuevamente" if latest else "Analizar con IA"
+            if st.button(label, type="primary", key=f"gemini_{module}_{project['folio']}"):
+                try:
+                    with st.spinner("Analizando el expediente…"):
+                        response = generate_analysis(config, build_prompt(project, module))
+                    save_ai_response(project, module, response, "Gemini", config["model"])
+                    st.rerun()
+                except GeminiAIError as exc:
+                    st.error(str(exc))
+
+        if latest:
+            st.markdown("#### Último análisis")
+            st.markdown(latest)
+
+    with st.expander("🧠 Método manual con Copilot", expanded=False):
         st.caption(
             "El sistema prepara el expediente completo. Copia el texto en Copilot y pega aquí la respuesta; no utiliza API ni genera costos."
         )
@@ -165,11 +205,9 @@ def ai_panel(project: dict[str, Any], module: str) -> None:
             if not response.strip():
                 st.warning("Primero pega la respuesta de Copilot.")
             else:
-                record = {"fecha": now_iso(), "modulo": module, "respuesta": response.strip()}
-                project.setdefault("ia_history", []).append(record)
-                project[module.lower()]["ultima_respuesta_ia"] = response.strip()
-                save(project, module, "Respuesta de Copilot guardada")
+                save_ai_response(project, module, response, "Copilot manual")
                 st.rerun()
+
 
 def render_dashboard(projects: list[dict[str, Any]]) -> None:
     st.markdown('<p class="capex-title">Copiloto CAPEX</p>', unsafe_allow_html=True)
@@ -488,7 +526,7 @@ def render_project(project: dict[str, Any]) -> None:
         unsafe_allow_html=True,
     )
 
-    tabs = st.tabs(["1. Solicitud", "2. Proveedores", "3. Precalificación", "4. Riesgos", "5. Mercado", "6. Cotizaciones", "Memoria", "Archivo"])
+    tabs = st.tabs(["1. Solicitud", "2. Proveedores", "3. Precalificación", "4. Riesgos", "5. Mercado", "6. Cotizaciones", "Asistente IA", "Memoria", "Archivo"])
     with tabs[0]:
         render_m1(project)
     with tabs[1]:
@@ -502,6 +540,10 @@ def render_project(project: dict[str, Any]) -> None:
     with tabs[5]:
         render_m6(project)
     with tabs[6]:
+        st.subheader("Asistente integral del expediente")
+        st.caption("Revisa los seis módulos y recomienda la siguiente acción prioritaria.")
+        ai_panel(project, "GENERAL", expanded=True)
+    with tabs[7]:
         st.subheader("Memoria del proyecto")
         if project.get("ia_history"):
             st.write("**Respuestas de IA guardadas**")
@@ -510,7 +552,7 @@ def render_project(project: dict[str, Any]) -> None:
                     st.write(item["respuesta"])
         st.write("**Historial de cambios**")
         st.dataframe(project.get("history", []), use_container_width=True, hide_index=True)
-    with tabs[7]:
+    with tabs[8]:
         archive_project(project)
 
 def archive_project(project: dict[str, Any]) -> None:
