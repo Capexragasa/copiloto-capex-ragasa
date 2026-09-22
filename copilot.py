@@ -7,6 +7,7 @@ from risk import global_risk, selected_alternative, selected_supplier
 
 
 MODULE_TASKS = {
+    "GENERAL": "Revisa el expediente completo, resume su situación, detecta los faltantes prioritarios y recomienda la siguiente acción concreta para hacerlo avanzar.",
     "M1": "Evalúa la solicitud, detecta faltantes y propone alternativas técnicas con riesgo Bajo/Medio/Alto y justificación.",
     "M2": "Evalúa únicamente los proveedores listados, justifica su coincidencia técnica y clasifica su riesgo. No inventes datos.",
     "M3": "Revisa la precalificación registrada e indica qué documentación o validaciones faltan.",
